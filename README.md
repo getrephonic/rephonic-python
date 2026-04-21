@@ -51,6 +51,16 @@ Exit codes: `0` success, `1` API or network error, `2` usage error (bad flags), 
 
 Run `rephonic --help` for the full command tree, or `rephonic <group> --help` (e.g. `rephonic podcasts --help`) for commands inside a group. The six groups match the Python client: `search`, `podcasts`, `episodes`, `charts`, `common`, `account`.
 
+### Agent skills
+
+The repo also ships [Agent Skills](https://agentskills.io/) for common workflows (setup, search with filters, contact enrichment, similar-podcast discovery, transcript pulls). Install them into your agent's skills directory with the [`skills`](https://skills.sh) CLI:
+
+```bash
+npx skills add getrephonic/rephonic-python
+```
+
+Auto-detects Claude Code, Cursor, Copilot, Gemini CLI, Goose, and ~40 other agents.
+
 ## Python quickstart
 
 Grab an API key from [rephonic.com/developers](https://rephonic.com/developers).
