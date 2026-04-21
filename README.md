@@ -2,7 +2,7 @@
 
 Official Python client for the [Rephonic](https://rephonic.com) podcast API. Covers 3+ million podcasts with listener estimates, demographics, contact details, chart rankings, episodes, full transcripts, and more.
 
-Thin, typed wrapper around the [Rephonic HTTP API](https://rephonic.com/developers). If you want to plug Rephonic into an AI assistant instead, use the [Rephonic MCP Server](https://github.com/getrephonic/rephonic-mcp).
+Thin, typed wrapper around the [Rephonic HTTP API](https://rephonic.com/developers). Ships with a [`rephonic` CLI](#command-line) for shell scripts and AI coding agents. If you want Rephonic inside an AI assistant via Model Context Protocol, use the [Rephonic MCP Server](https://github.com/getrephonic/rephonic-mcp).
 
 ## What you can build with it
 
@@ -18,12 +18,40 @@ Thin, typed wrapper around the [Rephonic HTTP API](https://rephonic.com/develope
 ## Install
 
 ```bash
-pip install rephonic
+pip install rephonic            # SDK (and CLI)
+pipx install rephonic           # CLI in an isolated venv (recommended for the CLI)
 ```
 
 Python 3.8+.
 
-## Quickstart
+## Command line
+
+`pip install rephonic` also installs a `rephonic` command. Every method on the Python client has a CLI equivalent. Authentication is via `REPHONIC_API_KEY` in the environment. Output is JSON on stdout, structured errors on stderr.
+
+```bash
+export REPHONIC_API_KEY=your_api_key
+
+# Look up a podcast
+rephonic podcasts get huberman-lab | jq '.podcast.name'
+
+# Search with Stripe-style filters
+rephonic search podcasts \
+  --query "marketing" \
+  --filters '{"listeners":{"gte":10000},"active":true}'
+
+# Grab a transcript
+rephonic episodes transcript kzaca-huberman-lab-dr-brian-keating-charting-the-a \
+  | jq '.transcript.segments[].text'
+
+# Check your quota
+rephonic account quota
+```
+
+Exit codes: `0` success, `1` API or network error, `2` usage error (bad flags), `4` authentication error, `5` server error (5xx).
+
+Run `rephonic --help` for the full command tree, or `rephonic <group> --help` (e.g. `rephonic podcasts --help`) for commands inside a group. The six groups match the Python client: `search`, `podcasts`, `episodes`, `charts`, `common`, `account`.
+
+## Python quickstart
 
 Grab an API key from [rephonic.com/developers](https://rephonic.com/developers).
 

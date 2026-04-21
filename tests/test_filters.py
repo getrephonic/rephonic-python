@@ -48,8 +48,7 @@ class TestDict:
             }
         )
         assert out == (
-            "listeners:gte:5000,active:is:true,"
-            "categories:any:1482-1406,locations:any:us"
+            "listeners:gte:5000,active:is:true,categories:any:1482-1406,locations:any:us"
         )
 
     def test_empty_dict(self):

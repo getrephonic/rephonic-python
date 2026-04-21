@@ -40,9 +40,9 @@ def test_podcast_get_encodes_path(client):
 @respx.mock
 def test_path_param_cannot_traverse(client):
     """A malicious podcast_id containing slashes must not break out of the path."""
-    route = respx.get(
-        "https://api.rephonic.com/api/podcasts/..%2Fadmin/people/"
-    ).mock(return_value=httpx.Response(200, json=dict(people=dict(hosts=dict(list=[])))))
+    route = respx.get("https://api.rephonic.com/api/podcasts/..%2Fadmin/people/").mock(
+        return_value=httpx.Response(200, json=dict(people=dict(hosts=dict(list=[]))))
+    )
     client.podcasts.people("../admin")
     assert route.called, "Expected the slashes in podcast_id to be percent-encoded"
 

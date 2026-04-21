@@ -29,6 +29,7 @@ def quote_path(segment: str) -> str:
     """
     return quote(str(segment), safe="")
 
+
 DEFAULT_BASE_URL = "https://api.rephonic.com"
 DEFAULT_TIMEOUT = 30.0
 DEFAULT_MAX_RETRIES = 2

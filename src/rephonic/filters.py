@@ -38,9 +38,7 @@ def encode_filters(filters: FilterSpec) -> str | None:
         return _encode_string_list(filters)
     if isinstance(filters, Mapping):
         return _encode_mapping(filters)
-    raise TypeError(
-        f"filters must be str, list, dict, or None; got {type(filters).__name__}"
-    )
+    raise TypeError(f"filters must be str, list, dict, or None; got {type(filters).__name__}")
 
 
 def _encode_string_list(items: list[Any]) -> str | None:
@@ -48,9 +46,7 @@ def _encode_string_list(items: list[Any]) -> str | None:
         return None
     for item in items:
         if not isinstance(item, str):
-            raise TypeError(
-                f"filter list items must be str; got {type(item).__name__}"
-            )
+            raise TypeError(f"filter list items must be str; got {type(item).__name__}")
     return ",".join(items)
 
 
@@ -68,9 +64,7 @@ def _encode_field(field: str, value: Any) -> list[str]:
         if not value:
             raise ValueError(f"filter spec for {field!r} is empty")
         return [_clause_for_op(field, op, v) for op, v in value.items()]
-    raise TypeError(
-        f"filter value for {field!r} must be bool or dict; got {type(value).__name__}"
-    )
+    raise TypeError(f"filter value for {field!r} must be bool or dict; got {type(value).__name__}")
 
 
 def _clause_for_op(field: str, op: str, value: Any) -> str:
@@ -78,15 +72,11 @@ def _clause_for_op(field: str, op: str, value: Any) -> str:
         return _clause(field, op, _stringify(value))
     if op == "is":
         if not isinstance(value, bool):
-            raise TypeError(
-                f"{field!r} 'is' operator expects bool; got {type(value).__name__}"
-            )
+            raise TypeError(f"{field!r} 'is' operator expects bool; got {type(value).__name__}")
         return _clause(field, op, _stringify(value))
     if op in ("any", "in"):
         if not isinstance(value, (list, tuple)):
-            raise TypeError(
-                f"{field!r} {op!r} operator expects a list; got {type(value).__name__}"
-            )
+            raise TypeError(f"{field!r} {op!r} operator expects a list; got {type(value).__name__}")
         if not value:
             raise ValueError(f"{field!r} {op!r} operator expects a non-empty list")
         return _clause(field, op, "-".join(_escape(_stringify(v)) for v in value))
