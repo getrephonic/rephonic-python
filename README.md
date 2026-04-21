@@ -213,7 +213,7 @@ async_client = AsyncRephonic(
 
 ## Rate limits and quota
 
-The `$299/month` plan includes 10,000 requests per month. Check current usage with:
+Check your current monthly usage:
 
 ```python
 client.account.quota()
