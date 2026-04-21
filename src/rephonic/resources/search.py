@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any, AsyncIterator, Iterator
 
 from .._base_client import AsyncBaseClient, BaseClient
+from ..filters import FilterSpec, encode_filters
 from ..pagination import aiter_pages, iter_pages
 
 SearchMode = str  # "topics" | "titles" | "publishers"
@@ -16,16 +17,22 @@ def _podcast_params(
     mode: str | None,
     per_page: int | None,
     page: int | None,
-    filters: str | None,
+    filters: FilterSpec,
 ) -> dict[str, Any]:
-    return dict(query=query, mode=mode, per_page=per_page, page=page, filters=filters)
+    return dict(
+        query=query,
+        mode=mode,
+        per_page=per_page,
+        page=page,
+        filters=encode_filters(filters),
+    )
 
 
 def _episode_params(
     query: str | None,
     per_page: int | None,
     page: int | None,
-    filters: str | None,
+    filters: FilterSpec,
     highlight: bool | None,
     podcast_id: str | None,
     threshold: int | None,
@@ -34,7 +41,7 @@ def _episode_params(
         query=query,
         per_page=per_page,
         page=page,
-        filters=filters,
+        filters=encode_filters(filters),
         highlight=highlight,
         podcast_id=podcast_id,
         threshold=threshold,
@@ -54,7 +61,7 @@ class Search:
         mode: SearchMode | None = None,
         per_page: int | None = None,
         page: int | None = None,
-        filters: str | None = None,
+        filters: FilterSpec = None,
     ) -> dict[str, Any]:
         """Search for podcasts by topic, title, or publisher.
 
@@ -70,7 +77,7 @@ class Search:
         *,
         query: str | None = None,
         mode: SearchMode | None = None,
-        filters: str | None = None,
+        filters: FilterSpec = None,
         per_page: int = 50,
         limit: int | None = None,
     ) -> Iterator[dict[str, Any]]:
@@ -89,7 +96,7 @@ class Search:
         query: str | None = None,
         per_page: int | None = None,
         page: int | None = None,
-        filters: str | None = None,
+        filters: FilterSpec = None,
         highlight: bool | None = None,
         podcast_id: str | None = None,
         threshold: int | None = None,
@@ -110,7 +117,7 @@ class Search:
         self,
         *,
         query: str | None = None,
-        filters: str | None = None,
+        filters: FilterSpec = None,
         highlight: bool | None = None,
         podcast_id: str | None = None,
         threshold: int | None = None,
@@ -150,7 +157,7 @@ class AsyncSearch:
         mode: SearchMode | None = None,
         per_page: int | None = None,
         page: int | None = None,
-        filters: str | None = None,
+        filters: FilterSpec = None,
     ) -> dict[str, Any]:
         return await self._client.get(
             "/api/search/podcasts/",
@@ -162,7 +169,7 @@ class AsyncSearch:
         *,
         query: str | None = None,
         mode: SearchMode | None = None,
-        filters: str | None = None,
+        filters: FilterSpec = None,
         per_page: int = 50,
         limit: int | None = None,
     ) -> AsyncIterator[dict[str, Any]]:
@@ -179,7 +186,7 @@ class AsyncSearch:
         query: str | None = None,
         per_page: int | None = None,
         page: int | None = None,
-        filters: str | None = None,
+        filters: FilterSpec = None,
         highlight: bool | None = None,
         podcast_id: str | None = None,
         threshold: int | None = None,
@@ -195,7 +202,7 @@ class AsyncSearch:
         self,
         *,
         query: str | None = None,
-        filters: str | None = None,
+        filters: FilterSpec = None,
         highlight: bool | None = None,
         podcast_id: str | None = None,
         threshold: int | None = None,

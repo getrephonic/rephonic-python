@@ -30,10 +30,12 @@ from ._exceptions import (
     RephonicError,
 )
 from ._version import __version__
+from .filters import FilterSpec
 
 __all__ = [
     "Rephonic",
     "AsyncRephonic",
+    "FilterSpec",
     "RephonicError",
     "APIConnectionError",
     "APIStatusError",

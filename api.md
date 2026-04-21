@@ -22,7 +22,7 @@ Async client. Same constructor and resource attributes as `Rephonic`, but every 
 
 ### `search.podcasts(*, query=None, mode=None, per_page=None, page=None, filters=None)`
 
-`GET /api/search/podcasts/` — Search by topic (default), title, or publisher.
+`GET /api/search/podcasts/`. Search by topic (default), title, or publisher. `filters` accepts a Stripe-style dict (`{"listeners": {"gte": 5000}, "active": True, "categories": {"any": [1482, 1406]}}`), a list of raw clauses (`["listeners:gte:5000"]`), or a legacy comma-separated string. See the [Filters section in the README](./README.md#filters).
 
 ### `search.iter_podcasts(*, query=None, mode=None, filters=None, per_page=50, limit=None)`
 

@@ -39,7 +39,7 @@ print(podcast["podcast"]["name"], podcast["podcast"]["downloads_per_episode"])
 # Search for podcasts with filters
 results = client.search.podcasts(
     query="artificial intelligence",
-    filters="listeners:gte:10000,active:is:true",
+    filters={"listeners": {"gte": 10000}, "active": True},
     per_page=25,
 )
 for p in results["podcasts"]:
@@ -155,22 +155,37 @@ The client retries automatically on 429 and 5xx responses with exponential backo
 
 ## Filters
 
-Search endpoints accept a `filters` string with comma-separated `field:operator:value` clauses:
+Pass `filters` as a dict. Booleans are plain values; numeric ops use `gte` / `lte`; multi-value ops use `any` (union) / `in` (intersection):
 
 ```python
 client.search.podcasts(
     query="marketing",
-    filters=(
-        "listeners:gte:5000,"
-        "active:is:true,"
-        "categories:any:1482-1406,"
-        "locations:any:us,"
-        "professions:any:Doctor-Lawyer"
-    ),
+    filters={
+        "listeners": {"gte": 5000},
+        "active": True,
+        "categories": {"any": [1482, 1406]},
+        "locations": {"any": ["us"]},
+        "professions": {"any": ["Doctor", "Lawyer"]},
+        "founded": {"gte": 1517270400, "lte": 1589932800},
+    },
 )
 ```
 
+Reserved characters (`-`, `,`, `:`, `\`) inside values are escaped automatically, so `"Harley-Davidson"` just works.
+
+> Rephonic's `in` means the field must contain **all** of the listed values (intersection), not SQL-style set membership. Use `any` for OR semantics.
+
 Full list of filters and operators at [rephonic.com/developers/search-filters](https://rephonic.com/developers/search-filters). Use `client.common.categories()`, `countries()`, `languages()`, `sponsors()`, `professions()`, and `interests()` to look up valid IDs.
+
+Other accepted shapes for `filters`:
+
+```python
+# List of raw clauses
+filters=["listeners:gte:5000", "active:is:true"]
+
+# Legacy comma-separated string (still supported)
+filters="listeners:gte:5000,active:is:true"
+```
 
 ## Advanced configuration
 
