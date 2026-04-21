@@ -1,4 +1,4 @@
-# Rephonic Python
+# rephonic-python
 
 Official Python client for the [Rephonic](https://rephonic.com) podcast API. Covers 3+ million podcasts with listener estimates, demographics, contact details, chart rankings, episodes, full transcripts, and more.
 
