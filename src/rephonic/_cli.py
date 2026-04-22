@@ -255,6 +255,33 @@ def search_autocomplete(
 # --- podcasts ------------------------------------------------------------
 
 
+@podcasts_app.command("lookup")
+def podcasts_lookup(
+    itunes_id: Optional[str] = typer.Option(None, help="Apple/iTunes ID."),
+    feed_url: Optional[str] = typer.Option(None, help="RSS feed URL."),
+    spotify_id: Optional[str] = typer.Option(None, help="Spotify show ID."),
+    youtube_channel_id: Optional[str] = typer.Option(
+        None, help="YouTube channel ID (starts with UC)."
+    ),
+) -> None:
+    """Resolve a podcast from an external identifier. Pass exactly one.
+
+    Examples:
+      rephonic podcasts lookup --itunes-id 1545953110
+      rephonic podcasts lookup --feed-url https://feeds.megaphone.fm/hubermanlab
+      rephonic podcasts lookup --spotify-id 79CkJF3UJTHFV8Dse3Oy0P
+      rephonic podcasts lookup --youtube-channel-id UC2D2CMWXMOVWx7giW1n3LIg
+    """
+    _run(
+        lambda c: c.podcasts.lookup(
+            itunes_id=itunes_id,
+            feed_url=feed_url,
+            spotify_id=spotify_id,
+            youtube_channel_id=youtube_channel_id,
+        )
+    )
+
+
 @podcasts_app.command("get")
 def podcasts_get(
     podcast_id: str = typer.Argument(..., metavar="PODCAST_ID"),

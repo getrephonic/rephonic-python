@@ -17,7 +17,13 @@ rephonic podcasts similar-graph huberman-lab | jq '.graph.nodes[0:10]'
 
 ### 1. Resolve seed podcast ID
 
-If the user gives a name, look it up:
+If the user has an external identifier (Apple/iTunes ID, Spotify ID, YouTube channel ID, or RSS feed URL), resolve it directly — no search needed:
+
+```bash
+SEED=$(rephonic podcasts lookup --itunes-id 1545953110 | jq -r '.podcasts[0].id')
+```
+
+Otherwise, search by name:
 
 ```bash
 SEED=$(rephonic search podcasts --query "huberman lab" | jq -r '.podcasts[0].id')

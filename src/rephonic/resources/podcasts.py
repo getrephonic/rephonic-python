@@ -23,6 +23,33 @@ class Podcasts:
     def __init__(self, client: BaseClient) -> None:
         self._client = client
 
+    def lookup(
+        self,
+        *,
+        itunes_id: int | str | None = None,
+        feed_url: str | None = None,
+        spotify_id: str | None = None,
+        youtube_channel_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Resolve a podcast from an external identifier.
+
+        Pass exactly one of ``itunes_id``, ``feed_url``, ``spotify_id``, or
+        ``youtube_channel_id``. Returns ``{"podcasts": [...]}`` — the list
+        is empty when no match is found, and may contain multiple entries
+        for ``feed_url`` / ``youtube_channel_id`` when the identifier is
+        shared. Use the returned ``id`` with :meth:`get` and the other
+        podcast methods.
+        """
+        return self._client.get(
+            "/api/podcasts/lookup/",
+            params=dict(
+                itunes_id=itunes_id,
+                feed_url=feed_url,
+                spotify_id=spotify_id,
+                youtube_channel_id=youtube_channel_id,
+            ),
+        )
+
     def get(self, podcast_id: str) -> dict[str, Any]:
         """Full metadata, chart rankings, YouTube channel, similar podcasts, and latest episode."""
         return self._client.get(f"/api/podcasts/{quote_path(podcast_id)}/")
@@ -88,6 +115,24 @@ class AsyncPodcasts:
 
     def __init__(self, client: AsyncBaseClient) -> None:
         self._client = client
+
+    async def lookup(
+        self,
+        *,
+        itunes_id: int | str | None = None,
+        feed_url: str | None = None,
+        spotify_id: str | None = None,
+        youtube_channel_id: str | None = None,
+    ) -> dict[str, Any]:
+        return await self._client.get(
+            "/api/podcasts/lookup/",
+            params=dict(
+                itunes_id=itunes_id,
+                feed_url=feed_url,
+                spotify_id=spotify_id,
+                youtube_channel_id=youtube_channel_id,
+            ),
+        )
 
     async def get(self, podcast_id: str) -> dict[str, Any]:
         return await self._client.get(f"/api/podcasts/{quote_path(podcast_id)}/")

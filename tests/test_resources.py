@@ -38,6 +38,32 @@ def test_podcast_get_encodes_path(client):
 
 
 @respx.mock
+def test_podcast_lookup_passes_param(client):
+    route = respx.get("https://api.rephonic.com/api/podcasts/lookup/").mock(
+        return_value=httpx.Response(200, json=dict(podcasts=[dict(id="huberman-lab")]))
+    )
+    result = client.podcasts.lookup(itunes_id=1545953110)
+    assert result["podcasts"][0]["id"] == "huberman-lab"
+    params = route.calls.last.request.url.params
+    assert params["itunes_id"] == "1545953110"
+    # None-valued params are stripped by the base client.
+    assert "feed_url" not in params
+    assert "spotify_id" not in params
+    assert "youtube_channel_id" not in params
+
+
+@respx.mock
+def test_podcast_lookup_feed_url(client):
+    route = respx.get("https://api.rephonic.com/api/podcasts/lookup/").mock(
+        return_value=httpx.Response(200, json=dict(podcasts=[]))
+    )
+    client.podcasts.lookup(feed_url="https://feeds.megaphone.fm/hubermanlab")
+    params = route.calls.last.request.url.params
+    assert params["feed_url"] == "https://feeds.megaphone.fm/hubermanlab"
+    assert "itunes_id" not in params
+
+
+@respx.mock
 def test_path_param_cannot_traverse(client):
     """A malicious podcast_id containing slashes must not break out of the path."""
     route = respx.get("https://api.rephonic.com/api/podcasts/..%2Fadmin/people/").mock(

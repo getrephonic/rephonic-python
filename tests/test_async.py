@@ -43,6 +43,17 @@ async def test_podcast_get(aclient):
 
 
 @respx.mock
+async def test_podcast_lookup(aclient):
+    route = respx.get("https://api.rephonic.com/api/podcasts/lookup/").mock(
+        return_value=httpx.Response(200, json=dict(podcasts=[dict(id="huberman-lab")]))
+    )
+    result = await aclient.podcasts.lookup(spotify_id="79CkJF3UJTHFV8Dse3Oy0P")
+    assert result["podcasts"][0]["id"] == "huberman-lab"
+    params = route.calls.last.request.url.params
+    assert params["spotify_id"] == "79CkJF3UJTHFV8Dse3Oy0P"
+
+
+@respx.mock
 async def test_search_podcasts(aclient):
     route = respx.get("https://api.rephonic.com/api/search/podcasts/").mock(
         return_value=httpx.Response(200, json=dict(podcasts=[dict(id="x")], more=False))

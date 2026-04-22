@@ -70,9 +70,13 @@ from rephonic import Rephonic
 
 client = Rephonic(api_key="your_api_key")
 
-# Look up a podcast
+# Look up a podcast by its Rephonic slug
 podcast = client.podcasts.get("huberman-lab")
 print(podcast["podcast"]["name"], podcast["podcast"]["downloads_per_episode"])
+
+# ... or by an external identifier (Apple, Spotify, YouTube, RSS)
+match = client.podcasts.lookup(itunes_id=1545953110)
+slug = match["podcasts"][0]["id"] if match["podcasts"] else None
 
 # Search for podcasts with filters
 results = client.search.podcasts(

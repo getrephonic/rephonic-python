@@ -44,6 +44,10 @@ Iterator over every matching episode.
 
 ## `client.podcasts`
 
+### `podcasts.lookup(*, itunes_id=None, feed_url=None, spotify_id=None, youtube_channel_id=None)`
+
+`GET /api/podcasts/lookup/` — Resolve a podcast from an external identifier. Pass exactly one of the four arguments. Returns `{"podcasts": [...]}` — empty when no match; may contain multiple entries when a `feed_url` or `youtube_channel_id` is shared. Use the returned `id` with the other `podcasts.*` methods.
+
 ### `podcasts.get(podcast_id)`
 
 `GET /api/podcasts/<id>/` — Full metadata, chart rankings, YouTube channel, similar podcasts, and latest episode.
