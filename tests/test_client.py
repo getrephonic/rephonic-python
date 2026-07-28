@@ -12,6 +12,7 @@ from rephonic import (
     Rephonic,
     RephonicError,
 )
+from rephonic._base_client import DEFAULT_API_VERSION
 
 
 def test_requires_api_key(monkeypatch):
@@ -39,6 +40,17 @@ def test_sends_auth_header(client):
     client.account.quota()
     assert route.called
     assert route.calls.last.request.headers["x-rephonic-api-key"] == "test-key"
+    assert route.calls.last.request.headers["x-rephonic-api-version"] == DEFAULT_API_VERSION
+
+
+@respx.mock
+def test_api_version_override():
+    route = respx.get("https://api.rephonic.com/api/accounts/quota/").mock(
+        return_value=httpx.Response(200, json=dict(usage=1, quota=10000))
+    )
+    with Rephonic(api_key="test-key", api_version="1.0", max_retries=0) as client:
+        client.account.quota()
+    assert route.calls.last.request.headers["x-rephonic-api-version"] == "1.0"
 
 
 @respx.mock

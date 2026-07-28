@@ -8,6 +8,7 @@ from typing import Any
 import httpx
 
 from ._base_client import (
+    DEFAULT_API_VERSION,
     DEFAULT_BASE_URL,
     DEFAULT_MAX_RETRIES,
     DEFAULT_TIMEOUT,
@@ -50,6 +51,8 @@ class Rephonic:
     Args:
         api_key: Your Rephonic API key. Falls back to ``REPHONIC_API_KEY`` env.
         base_url: Override the API base URL.
+        api_version: API version sent as ``X-Rephonic-Api-Version`` (default
+            the latest version; see rephonic.com/developers for the history).
         timeout: Request timeout in seconds.
         max_retries: Retries on connection errors, 429s, and 5xxs (default 2).
         http_client: Bring your own ``httpx.Client`` (for proxies, custom TLS).
@@ -67,6 +70,7 @@ class Rephonic:
         api_key: str | None = None,
         *,
         base_url: str = DEFAULT_BASE_URL,
+        api_version: str = DEFAULT_API_VERSION,
         timeout: float = DEFAULT_TIMEOUT,
         max_retries: int = DEFAULT_MAX_RETRIES,
         http_client: httpx.Client | None = None,
@@ -74,6 +78,7 @@ class Rephonic:
         self._base_client = BaseClient(
             api_key=_resolve_api_key(api_key),
             base_url=base_url,
+            api_version=api_version,
             timeout=timeout,
             max_retries=max_retries,
             http_client=http_client,
@@ -118,6 +123,7 @@ class AsyncRephonic:
         api_key: str | None = None,
         *,
         base_url: str = DEFAULT_BASE_URL,
+        api_version: str = DEFAULT_API_VERSION,
         timeout: float = DEFAULT_TIMEOUT,
         max_retries: int = DEFAULT_MAX_RETRIES,
         http_client: httpx.AsyncClient | None = None,
@@ -125,6 +131,7 @@ class AsyncRephonic:
         self._base_client = AsyncBaseClient(
             api_key=_resolve_api_key(api_key),
             base_url=base_url,
+            api_version=api_version,
             timeout=timeout,
             max_retries=max_retries,
             http_client=http_client,

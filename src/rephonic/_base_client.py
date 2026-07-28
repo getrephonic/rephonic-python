@@ -31,6 +31,7 @@ def quote_path(segment: str) -> str:
 
 
 DEFAULT_BASE_URL = "https://api.rephonic.com"
+DEFAULT_API_VERSION = "1.1"
 DEFAULT_TIMEOUT = 30.0
 DEFAULT_MAX_RETRIES = 2
 
@@ -55,8 +56,11 @@ def _default_headers() -> dict[str, str]:
     return {"User-Agent": f"rephonic-python/{__version__}"}
 
 
-def _auth_headers(api_key: str) -> dict[str, str]:
-    return {"X-Rephonic-Api-Key": api_key}
+def _auth_headers(api_key: str, api_version: str) -> dict[str, str]:
+    return {
+        "X-Rephonic-Api-Key": api_key,
+        "X-Rephonic-Api-Version": api_version,
+    }
 
 
 class BaseClient:
@@ -71,6 +75,7 @@ class BaseClient:
         *,
         api_key: str,
         base_url: str = DEFAULT_BASE_URL,
+        api_version: str = DEFAULT_API_VERSION,
         timeout: float = DEFAULT_TIMEOUT,
         max_retries: int = DEFAULT_MAX_RETRIES,
         http_client: httpx.Client | None = None,
@@ -78,6 +83,7 @@ class BaseClient:
         _validate_api_key(api_key)
         _validate_max_retries(max_retries)
         self._api_key = api_key
+        self._api_version = api_version
         self._base_url = base_url.rstrip("/")
         self._max_retries = max_retries
         self._owns_http_client = http_client is None
@@ -108,7 +114,7 @@ class BaseClient:
         """
         url = f"{self._base_url}{path}"
         cleaned = _clean_params(params) if params else None
-        headers = _auth_headers(self._api_key)
+        headers = _auth_headers(self._api_key, self._api_version)
 
         last_error: BaseException | None = None
         for attempt in range(self._max_retries + 1):
@@ -145,6 +151,7 @@ class AsyncBaseClient:
         *,
         api_key: str,
         base_url: str = DEFAULT_BASE_URL,
+        api_version: str = DEFAULT_API_VERSION,
         timeout: float = DEFAULT_TIMEOUT,
         max_retries: int = DEFAULT_MAX_RETRIES,
         http_client: httpx.AsyncClient | None = None,
@@ -152,6 +159,7 @@ class AsyncBaseClient:
         _validate_api_key(api_key)
         _validate_max_retries(max_retries)
         self._api_key = api_key
+        self._api_version = api_version
         self._base_url = base_url.rstrip("/")
         self._max_retries = max_retries
         self._owns_http_client = http_client is None
@@ -179,7 +187,7 @@ class AsyncBaseClient:
     ) -> dict[str, Any]:
         url = f"{self._base_url}{path}"
         cleaned = _clean_params(params) if params else None
-        headers = _auth_headers(self._api_key)
+        headers = _auth_headers(self._api_key, self._api_version)
 
         last_error: BaseException | None = None
         for attempt in range(self._max_retries + 1):
