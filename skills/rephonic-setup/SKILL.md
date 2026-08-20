@@ -5,7 +5,7 @@ description: Install the Rephonic CLI and Python SDK, configure authentication w
 
 # Set up Rephonic
 
-Rephonic is a podcast intelligence API covering 3M+ podcasts with listener estimates, demographics, contacts, transcripts, and chart rankings. The `rephonic` CLI wraps the HTTP API for shell use and AI coding agents.
+Rephonic is a podcast intelligence API covering 4M+ podcasts with listener estimates, demographics, contacts, transcripts, and chart rankings. The `rephonic` CLI wraps the HTTP API for shell use and AI coding agents.
 
 ## Install
 

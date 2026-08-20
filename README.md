@@ -1,6 +1,6 @@
 # rephonic-python
 
-Official Python client for the [Rephonic](https://rephonic.com) podcast API. Covers 3+ million podcasts with listener estimates, demographics, contact details, chart rankings, episodes, full transcripts, and more.
+Official Python client for the [Rephonic](https://rephonic.com) podcast API. Covers 4+ million podcasts with listener estimates, demographics, contact details, chart rankings, episodes, full transcripts, and more.
 
 Thin, typed wrapper around the [Rephonic HTTP API](https://rephonic.com/developers). Ships with a [`rephonic` CLI](#command-line) for shell scripts and AI coding agents. If you want Rephonic inside an AI assistant via Model Context Protocol, use the [Rephonic MCP Server](https://github.com/getrephonic/rephonic-mcp).
 
