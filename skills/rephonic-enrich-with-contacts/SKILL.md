@@ -41,7 +41,6 @@ Response shape. `contacts` is one list of emails and contact pages, ranked best 
       "email": "host@example.com",
       "full_name": "Jane Host",
       "role": "Host",
-      "concierge": false,
       "warning": false,
       "verification_status": "valid",
       "badges": ["best", "pitch_guests"],
@@ -52,7 +51,6 @@ Response shape. `contacts` is one list of emails and contact pages, ranked best 
       "medium": "page",
       "url": "https://example.com/contact",
       "role": "Contact Page",
-      "concierge": false,
       "badges": []
     }
   ],
@@ -64,7 +62,6 @@ Quality signals:
 
 - `badges`: `best` is the contact we recommend reaching out to first (an email or a page), `pitch_guests` / `pitch_sponsors` mark the best way to pitch a guest or ask about advertising, and `replies_to_pitches` marks an email that has answered pitches sent through Rephonic
 - `verification_status` = email deliverability: `valid`, `catch-all`, `invalid`, `risky`, `unknown`, or `null` when unchecked
-- `concierge: true` = added by Rephonic staff
 - `warning: true` = likely invalid address (e.g. a hosting provider's masked inbox)
 - `upvotes` / `downvotes` = community signal
 
