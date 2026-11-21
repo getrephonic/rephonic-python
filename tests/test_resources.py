@@ -85,7 +85,7 @@ def test_path_param_encodes_spaces(client):
 @respx.mock
 def test_podcast_contacts_passes_query(client):
     route = respx.get("https://api.rephonic.com/api/contacts/").mock(
-        return_value=httpx.Response(200, json=dict(contacts=dict(email=[])))
+        return_value=httpx.Response(200, json=dict(contacts=[], social=[]))
     )
     client.podcasts.contacts("the-daily")
     assert route.calls.last.request.url.params["podcast_id"] == "the-daily"

@@ -31,30 +31,41 @@ For a single podcast:
 rephonic podcasts contacts the-daily
 ```
 
-Response shape:
+Response shape. `contacts` is one list of emails and contact pages, ranked best first:
 
 ```json
 {
-  "contacts": {
-    "email": [
-      {
-        "address": "host@example.com",
-        "concierge": false,
-        "warning": null,
-        "upvotes": 12,
-        "downvotes": 1
-      }
-    ],
-    "page": ["https://example.com/contact"],
-    "social": [...]
-  }
+  "contacts": [
+    {
+      "medium": "email",
+      "email": "host@example.com",
+      "full_name": "Jane Host",
+      "role": "Host",
+      "concierge": false,
+      "warning": false,
+      "verification_status": "valid",
+      "badges": ["best", "pitch_guests"],
+      "upvotes": 12,
+      "downvotes": 1
+    },
+    {
+      "medium": "page",
+      "url": "https://example.com/contact",
+      "role": "Contact Page",
+      "concierge": false,
+      "badges": []
+    }
+  ],
+  "social": [...]
 }
 ```
 
 Quality signals:
 
-- `concierge: true` = verified by Rephonic staff, highest quality
-- `warning` = known issue (e.g. "bounced recently")
+- `badges`: `best` is the contact we recommend reaching out to first (an email or a page), `pitch_guests` / `pitch_sponsors` mark the best way to pitch a guest or ask about advertising, and `replies_to_pitches` marks an email that has answered pitches sent through Rephonic
+- `verification_status` = email deliverability: `valid`, `catch-all`, `invalid`, `risky`, `unknown`, or `null` when unchecked
+- `concierge: true` = added by Rephonic staff
+- `warning: true` = likely invalid address (e.g. a hosting provider's masked inbox)
 - `upvotes` / `downvotes` = community signal
 
 For a batch, loop over the IDs file:
@@ -67,18 +78,16 @@ done < podcast_ids.txt > contacts.jsonl
 
 ## Step 3: Shape
 
-Pick the best email per podcast and flatten to a pitch list:
+Pick the top-ranked email per podcast and flatten to a pitch list:
 
 ```bash
 jq -s '
   map({
     podcast_id,
-    email: (.contacts.email
-             | map(select(.warning == null))
-             | sort_by(-((.upvotes // 0) - (.downvotes // 0)))
+    email: ([.contacts[] | select(.medium == "email" and (.warning | not))]
              | first
-             | .address),
-    contact_page: (.contacts.page[0] // null)
+             | .email),
+    contact_page: ([.contacts[] | select(.medium == "page")] | first | .url)
   })
 ' contacts.jsonl > pitch_list.json
 ```

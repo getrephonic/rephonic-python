@@ -66,7 +66,7 @@ Iterator over every matching episode.
 
 ### `podcasts.contacts(podcast_id)`
 
-`GET /api/contacts/` — Email contacts (with `concierge`, `warning`, `upvotes`, `downvotes` quality fields), contact pages, and social accounts.
+`GET /api/contacts/` — Email contacts and contact pages as one list ranked best first (each with a `medium`, `badges`, and quality fields such as `verification_status`, `warning`, `upvotes` and `downvotes`), plus social accounts.
 
 ### `podcasts.social(podcast_id)`
 

@@ -12,12 +12,15 @@ def main():
 
     for podcast_id in podcast_ids:
         response = client.podcasts.contacts(podcast_id)
-        for contact in response["contacts"]["email"]:
+        for contact in response["contacts"]:
+            if contact["medium"] != "email":
+                continue
             if contact["warning"] or contact["downvotes"] > contact["upvotes"]:
                 continue
-            name = contact.get("full_name") or "(unknown)"
-            verified = "verified" if contact["concierge"] else "unverified"
-            print(f"{podcast_id}: {name} <{contact['email']}> ({contact['category']}, {verified})")
+            name = contact["full_name"] or "(unknown)"
+            status = contact["verification_status"] or "unchecked"
+            best = " [recommended]" if "best" in contact["badges"] else ""
+            print(f"{podcast_id}: {name} <{contact['email']}> ({contact['role']}, {status}){best}")
 
 
 if __name__ == "__main__":
