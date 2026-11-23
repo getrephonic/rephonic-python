@@ -56,7 +56,7 @@ The response looks like this, with emails and contact pages together in one `con
 
 These fields help you pick which contact to use:
 
-- In `badges`, `best` marks the contact we recommend reaching out to first, which can be an email or a page. `pitch_guests` and `pitch_sponsors` mark the best way to pitch a guest or ask about advertising. `replies_to_pitches` marks an email that has answered pitches sent through Rephonic.
+- In `badges`, `best` marks the contact we recommend reaching out to first, which can be an email or a page. `pitch_guests` and `pitch_sponsors` mark the best way to pitch a guest or ask about advertising. `replies_to_pitches` marks an email address where a real person has answered a pitch sent through Rephonic.
 - `verification_status` says whether email to the address is likely to be delivered. It is `valid`, `catch-all`, `risky`, `unknown`, or `null` when the address hasn't been checked. Addresses found to be invalid are left out.
 - `warning: true` means the address is probably not a real inbox, e.g. a hosting provider's masked address.
 - `upvotes` and `downvotes` count the Rephonic users who marked the contact as good or bad.

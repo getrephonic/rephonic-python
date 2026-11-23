@@ -225,7 +225,6 @@ def search_episodes(
     per_page: Optional[int] = typer.Option(None, "--per-page"),
     page: Optional[int] = typer.Option(None, "--page"),
     filters: Optional[str] = typer.Option(None, "--filters"),
-    highlight: Optional[bool] = typer.Option(None, "--highlight/--no-highlight"),
     podcast_id: Optional[str] = typer.Option(None, "--podcast-id"),
     threshold: Optional[int] = typer.Option(
         None,
@@ -244,7 +243,6 @@ def search_episodes(
             per_page=per_page,
             page=page,
             filters=parsed,
-            highlight=highlight,
             podcast_id=podcast_id,
             threshold=threshold,
         )
@@ -361,7 +359,7 @@ def podcasts_social(
 def podcasts_feedback(
     podcast_id: str = typer.Argument(..., metavar="PODCAST_ID"),
 ) -> None:
-    """Ratings and review counts for each app, plus AI-written review summaries."""
+    """Ratings and review counts for each app, plus a summary of the reviews."""
     _run(lambda c: c.podcasts.feedback(podcast_id))
 
 
@@ -386,13 +384,12 @@ def podcasts_trends(
     metrics: str = typer.Option(
         ...,
         "--metrics",
-        help='Comma-separated metrics (max 5): "downloads_per_episode", '
-        '"social_reach", "spotify_followers".',
+        help='Comma-separated metrics: "social_reach", "spotify_followers".',
     ),
 ) -> None:
     """Historical time series for podcast metrics.
 
-    Example: rephonic podcasts trends huberman-lab,lex-fridman-podcast --metrics downloads_per_episode,social_reach
+    Example: rephonic podcasts trends huberman-lab,lex-fridman-podcast --metrics social_reach,spotify_followers
     """
     _run(lambda c: c.podcasts.trends(podcast_ids, metrics=metrics))
 

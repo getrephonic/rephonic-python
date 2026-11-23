@@ -7,7 +7,7 @@ from typing import Any, Iterable
 from .._base_client import AsyncBaseClient, BaseClient, quote_path
 
 ReviewPlatform = str  # "all" | "apple" | "podchaser" | "castbox" | "audible" | "podaddict"
-TrendMetric = str  # "downloads_per_episode" | "social_reach" | "spotify_followers"
+TrendMetric = str  # "social_reach" | "spotify_followers"
 
 
 def _csv(value: str | Iterable[str]) -> str:
@@ -66,9 +66,10 @@ class Podcasts:
 
         Returns ``{"people": {"hosts": ..., "crew": ..., "guests": ...}}``.
         Hosts and crew carry a ``kind`` (``host``, ``producer``, ``booker``,
-        etc.), a ``role`` label, and ``is_lead``: ``True`` for the current
-        host(s) the show is fronted by, ``False`` for other hosts, ``None`` for
-        crew and for shows not yet researched.
+        etc.), a ``role`` label, and ``is_lead``. ``is_lead`` is ``True`` for
+        the host or hosts the show is known for today, ``False`` for other
+        hosts, and ``None`` for crew and for hosts when we don't know yet which
+        of them leads the show.
         """
         return self._client.get(f"/api/podcasts/{quote_path(podcast_id)}/people/")
 
@@ -101,12 +102,12 @@ class Podcasts:
         return self._client.get("/api/social/accounts/", params=dict(podcast_id=podcast_id))
 
     def feedback(self, podcast_id: str) -> dict[str, Any]:
-        """Ratings and review counts for each app, plus AI-written review summaries.
+        """Ratings and review counts for each app, plus a summary of the reviews.
 
-        Each entry in ``feedback`` has the ``app`` (e.g. ``apple``,
-        ``spotify``), its average ``rating``, and its ``ratings`` and
-        ``reviews`` counts. ``insights`` is a list of AI-written sentences
-        that summarise what listeners say in their reviews.
+        Each entry in ``feedback`` has the ``app`` (``apple``, ``spotify``,
+        ``podchaser``, ``podaddict``, ``castbox`` or ``audible``), its average
+        ``rating``, and its ``ratings`` and ``reviews`` counts. ``insights`` is
+        a few sentences that sum up what listeners say in their reviews.
         """
         return self._client.get("/api/feedback/", params=dict(podcast_id=podcast_id))
 
@@ -129,8 +130,8 @@ class Podcasts:
         """Historical time series for one or more podcasts.
 
         ``podcast_ids`` accepts a string or iterable (max 3).
-        ``metrics`` accepts a string or iterable (max 5). Allowed values:
-        ``downloads_per_episode``, ``social_reach``, ``spotify_followers``.
+        ``metrics`` accepts a string or iterable. Allowed values:
+        ``social_reach``, ``spotify_followers``.
         """
         return self._client.get(
             "/api/trends/",

@@ -12,13 +12,10 @@ def main():
     results = client.search.episodes(
         query='"Acme Corporation" OR "acme.com"',
         threshold=one_day,
-        highlight=True,
         per_page=50,
     )
     for episode in results["episodes"]:
         print(f"{episode['podcast']['name']}: {episode['title']}")
-        if episode.get("highlight"):
-            print(f"  -> {episode['highlight']}")
 
 
 if __name__ == "__main__":

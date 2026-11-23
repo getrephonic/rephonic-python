@@ -32,13 +32,13 @@ Searches podcasts by topic (the default), title or publisher. `filters` takes a 
 
 Yields every matching podcast, fetching further pages as it goes. It stops after `limit` podcasts if you pass `limit`.
 
-### `search.episodes(*, query=None, per_page=None, page=None, filters=None, highlight=None, podcast_id=None, threshold=None)`
+### `search.episodes(*, query=None, per_page=None, page=None, filters=None, podcast_id=None, threshold=None)`
 
 `GET /api/search/episodes/`
 
 Searches the text of episode titles, show notes and transcripts. `threshold=N` limits results to episodes published in the last N seconds (max 1,209,600). Poll with a small `threshold` to pick up new mentions of a brand.
 
-### `search.iter_episodes(*, query=None, filters=None, highlight=None, podcast_id=None, threshold=None, per_page=50, limit=None)`
+### `search.iter_episodes(*, query=None, filters=None, podcast_id=None, threshold=None, per_page=50, limit=None)`
 
 Yields every matching episode, fetching further pages as it goes.
 
@@ -70,9 +70,9 @@ Returns the podcast's full metadata. This includes listener estimates (`download
 
 Returns the hosts, crew and recent guests, with their contacts and social accounts. Each host and crew member has a `kind` (`host`, `producer`, `exec-producer`, `booker`, `editor`, `ad-sales` or `crew`) and a `role` label. They also have `is_lead`, which works like this:
 
-- `true` for the current host or hosts who front the show. On an ensemble show with no single anchor, every current host is `true`.
-- `false` for other hosts, e.g. former hosts or rotating hosts who appear beside an anchor.
-- `null` for crew, and for shows Rephonic hasn't researched yet.
+- `true` for the host or hosts the show is known for today. On a show with one or two main hosts and others who rotate in, only the main hosts are `true`. On a show where several hosts take turns and none is the main one, every current host is `true`.
+- `false` for other hosts, such as former hosts.
+- `null` for crew, and for hosts when we don't know yet which of them leads the show.
 
 Each guest entry includes details of the episode they appeared on.
 
@@ -104,13 +104,13 @@ Returns the podcast's email contacts and contact pages in one list, ranked best 
 
 `GET /api/social/accounts/`
 
-Returns the podcast's social media accounts with follower and engagement numbers. The channels are `instagram`, `facebook`, `twitter`, `patreon`, `tiktok`, `soundcloud`, `pinterest`, `linkedin_profile`, `linkedin_group` and `clubhouse_club`.
+Returns the podcast's social media accounts with follower and engagement numbers. The channels are `instagram`, `facebook`, `twitter`, `patreon`, `tiktok`, `soundcloud`, `pinterest`, `linkedin_profile` and `linkedin_group`.
 
 ### `podcasts.feedback(podcast_id)`
 
 `GET /api/feedback/`
 
-Returns one entry per app (e.g. `apple`, `spotify`, `podchaser`) with its average `rating` and its counts of `ratings` and `reviews`. It also returns `insights`, a list of AI-written sentences that summarise what listeners say in their reviews.
+Returns one entry per app with its average `rating` and its counts of `ratings` and `reviews`. The apps are `apple`, `spotify`, `podchaser`, `podaddict`, `castbox` and `audible`. Not every app has a rating. It also returns `insights`, a few sentences that sum up what listeners say in their reviews.
 
 ### `podcasts.reviews(podcast_id, *, platform)`
 
@@ -122,7 +122,7 @@ Returns individual listener reviews. `platform` is one of `all`, `apple`, `podch
 
 `GET /api/trends/`
 
-Returns the history of each metric over time. `podcast_ids` takes a single ID or an iterable of up to 3. `metrics` takes a single metric or an iterable of up to 5. The allowed metrics are `downloads_per_episode`, `social_reach` and `spotify_followers`.
+Returns the history of each metric over time. `podcast_ids` takes a single ID or an iterable of up to 3. `metrics` takes a single metric or an iterable. The allowed metrics are `social_reach` and `spotify_followers`.
 
 ### `podcasts.similar_graph(podcast_id)`
 

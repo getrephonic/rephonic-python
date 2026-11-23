@@ -12,7 +12,7 @@ from rephonic import (
     Rephonic,
     RephonicError,
 )
-from rephonic._base_client import DEFAULT_API_VERSION
+from rephonic._base_client import DEFAULT_API_VERSION, _clean_params
 
 
 def test_requires_api_key(monkeypatch):
@@ -139,13 +139,8 @@ def test_context_manager_closes_client():
     assert client._base_client._http_client.is_closed
 
 
-@respx.mock
-def test_booleans_serialized_lowercase(client):
-    route = respx.get("https://api.rephonic.com/api/search/episodes/").mock(
-        return_value=httpx.Response(200, json=dict(episodes=[], more=False))
-    )
-    client.search.episodes(query="x", highlight=True)
-    assert route.calls.last.request.url.params["highlight"] == "true"
+def test_booleans_serialized_lowercase():
+    assert _clean_params(dict(a=True, b=False, c=None)) == dict(a="true", b="false")
 
 
 @respx.mock

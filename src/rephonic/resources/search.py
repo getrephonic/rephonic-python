@@ -33,7 +33,6 @@ def _episode_params(
     per_page: int | None,
     page: int | None,
     filters: FilterSpec,
-    highlight: bool | None,
     podcast_id: str | None,
     threshold: int | None,
 ) -> dict[str, Any]:
@@ -42,7 +41,6 @@ def _episode_params(
         per_page=per_page,
         page=page,
         filters=encode_filters(filters),
-        highlight=highlight,
         podcast_id=podcast_id,
         threshold=threshold,
     )
@@ -97,7 +95,6 @@ class Search:
         per_page: int | None = None,
         page: int | None = None,
         filters: FilterSpec = None,
-        highlight: bool | None = None,
         podcast_id: str | None = None,
         threshold: int | None = None,
     ) -> dict[str, Any]:
@@ -109,9 +106,7 @@ class Search:
         """
         return self._client.get(
             "/api/search/episodes/",
-            params=_episode_params(
-                query, per_page, page, filters, highlight, podcast_id, threshold
-            ),
+            params=_episode_params(query, per_page, page, filters, podcast_id, threshold),
         )
 
     def iter_episodes(
@@ -119,7 +114,6 @@ class Search:
         *,
         query: str | None = None,
         filters: FilterSpec = None,
-        highlight: bool | None = None,
         podcast_id: str | None = None,
         threshold: int | None = None,
         per_page: int = 50,
@@ -131,7 +125,6 @@ class Search:
             return self.episodes(
                 query=query,
                 filters=filters,
-                highlight=highlight,
                 podcast_id=podcast_id,
                 threshold=threshold,
                 per_page=per_page,
@@ -188,15 +181,12 @@ class AsyncSearch:
         per_page: int | None = None,
         page: int | None = None,
         filters: FilterSpec = None,
-        highlight: bool | None = None,
         podcast_id: str | None = None,
         threshold: int | None = None,
     ) -> dict[str, Any]:
         return await self._client.get(
             "/api/search/episodes/",
-            params=_episode_params(
-                query, per_page, page, filters, highlight, podcast_id, threshold
-            ),
+            params=_episode_params(query, per_page, page, filters, podcast_id, threshold),
         )
 
     def iter_episodes(
@@ -204,7 +194,6 @@ class AsyncSearch:
         *,
         query: str | None = None,
         filters: FilterSpec = None,
-        highlight: bool | None = None,
         podcast_id: str | None = None,
         threshold: int | None = None,
         per_page: int = 50,
@@ -214,7 +203,6 @@ class AsyncSearch:
             return await self.episodes(
                 query=query,
                 filters=filters,
-                highlight=highlight,
                 podcast_id=podcast_id,
                 threshold=threshold,
                 per_page=per_page,
