@@ -1,4 +1,4 @@
-"""Podcast-scoped endpoints: metadata, people, demographics, contacts, reviews, etc."""
+"""Podcast-scoped endpoints: metadata, people, rankings, demographics, contacts, reviews, etc."""
 
 from __future__ import annotations
 
@@ -34,10 +34,10 @@ class Podcasts:
         """Resolve a podcast from an external identifier.
 
         Pass exactly one of ``itunes_id``, ``feed_url``, ``spotify_id``, or
-        ``youtube_channel_id``. Returns ``{"podcasts": [...]}`` — the list
-        is empty when no match is found, and may contain multiple entries
-        for ``feed_url`` / ``youtube_channel_id`` when the identifier is
-        shared. Use the returned ``id`` with :meth:`get` and the other
+        ``youtube_channel_id``. Returns ``{"podcasts": [...]}``, and the list
+        is empty when nothing matches. More than one podcast can share a
+        ``feed_url`` or ``youtube_channel_id``, and then the list has an entry
+        for each. Pass the returned ``id`` to :meth:`get` and the other
         podcast methods.
         """
         return self._client.get(
@@ -51,12 +51,34 @@ class Podcasts:
         )
 
     def get(self, podcast_id: str) -> dict[str, Any]:
-        """Full metadata, chart rankings, YouTube channel, similar podcasts, and latest episode."""
+        """Full metadata for one podcast, under ``{"podcast": {...}}``.
+
+        Includes listener estimates, subscriber counts, ``entities`` (production
+        company, network, agencies), ``links`` (website, media kit), ``badges``,
+        guest and sponsor ``outreach`` (how to pitch, with ranked contacts),
+        YouTube channel, similar podcasts, and the latest episode. Chart
+        positions are in :meth:`rankings`.
+        """
         return self._client.get(f"/api/podcasts/{quote_path(podcast_id)}/")
 
     def people(self, podcast_id: str) -> dict[str, Any]:
-        """Hosts and recent guests with contacts and social accounts."""
+        """Hosts, crew, and recent guests with contacts and social accounts.
+
+        Returns ``{"people": {"hosts": ..., "crew": ..., "guests": ...}}``.
+        Hosts and crew carry a ``kind`` (``host``, ``producer``, ``booker``,
+        etc.), a ``role`` label, and ``is_lead``: ``True`` for the current
+        host(s) the show is fronted by, ``False`` for other hosts, ``None`` for
+        crew and for shows not yet researched.
+        """
         return self._client.get(f"/api/podcasts/{quote_path(podcast_id)}/people/")
+
+    def rankings(self, podcast_id: str) -> dict[str, Any]:
+        """Current Apple Podcasts, Spotify, and YouTube chart positions.
+
+        Returns ``{"rankings": [...]}`` with one row per platform, country, and
+        category the podcast ranks in. Empty when it doesn't currently chart.
+        """
+        return self._client.get(f"/api/podcasts/{quote_path(podcast_id)}/rankings/")
 
     def demographics(self, podcast_id: str) -> dict[str, Any]:
         """Estimated listener demographics: age, gender, education, income, interests, location."""
@@ -67,7 +89,11 @@ class Podcasts:
         return self._client.get(f"/api/podcasts/{quote_path(podcast_id)}/promotions/")
 
     def contacts(self, podcast_id: str) -> dict[str, Any]:
-        """Email contacts, contact pages, and social accounts with quality signals."""
+        """Email contacts and contact pages ranked best first, plus social accounts.
+
+        Returns ``{"contacts": [...], "social": [...]}``. Each contact has a
+        ``medium`` of ``email`` or ``page``, a ``role``, and ``badges``.
+        """
         return self._client.get("/api/contacts/", params=dict(podcast_id=podcast_id))
 
     def social(self, podcast_id: str) -> dict[str, Any]:
@@ -75,7 +101,13 @@ class Podcasts:
         return self._client.get("/api/social/accounts/", params=dict(podcast_id=podcast_id))
 
     def feedback(self, podcast_id: str) -> dict[str, Any]:
-        """Overall ratings across apps plus AI-generated summary insights."""
+        """Ratings and review counts for each app, plus AI-written review summaries.
+
+        Each entry in ``feedback`` has the ``app`` (e.g. ``apple``,
+        ``spotify``), its average ``rating``, and its ``ratings`` and
+        ``reviews`` counts. ``insights`` is a list of AI-written sentences
+        that summarise what listeners say in their reviews.
+        """
         return self._client.get("/api/feedback/", params=dict(podcast_id=podcast_id))
 
     def reviews(self, podcast_id: str, *, platform: ReviewPlatform) -> dict[str, Any]:
@@ -106,7 +138,7 @@ class Podcasts:
         )
 
     def similar_graph(self, podcast_id: str) -> dict[str, Any]:
-        """Shared-audience graph (nodes + links) of podcasts with overlapping listeners."""
+        """Graph of podcasts that share listeners with this one, as nodes and links."""
         return self._client.get("/api/similar/graph/", params=dict(podcast_id=podcast_id))
 
 
@@ -139,6 +171,9 @@ class AsyncPodcasts:
 
     async def people(self, podcast_id: str) -> dict[str, Any]:
         return await self._client.get(f"/api/podcasts/{quote_path(podcast_id)}/people/")
+
+    async def rankings(self, podcast_id: str) -> dict[str, Any]:
+        return await self._client.get(f"/api/podcasts/{quote_path(podcast_id)}/rankings/")
 
     async def demographics(self, podcast_id: str) -> dict[str, Any]:
         return await self._client.get(f"/api/podcasts/{quote_path(podcast_id)}/demographics/")

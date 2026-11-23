@@ -2,8 +2,11 @@
 
 Entry point: ``rephonic`` (installed via ``[project.scripts]``).
 
-Emits JSON on stdout for every command; structured JSON errors on stderr.
-Authentication comes from the ``REPHONIC_API_KEY`` environment variable.
+Every command prints its result to stdout as JSON. Errors are printed to
+stderr as JSON.
+Authentication comes from the ``REPHONIC_API_KEY`` environment variable. The
+API version comes from ``--api-version``, then ``REPHONIC_API_VERSION``, then
+the latest version.
 
 Exit codes:
     0  success
@@ -17,6 +20,7 @@ import json
 import sys
 from typing import Any, Callable, Dict, Optional
 
+import click
 import typer
 
 from ._client import Rephonic
@@ -47,24 +51,24 @@ def _make_typer(help_text: str, epilog: Optional[str] = None) -> typer.Typer:
 
 
 ROOT_EPILOG = (
-    "Output is JSON on stdout; errors are JSON on stderr. "
+    "Output is JSON on stdout, and errors are JSON on stderr. "
     "Pipe through `jq` to extract fields.\n"
     "\n"
-    "Auth: set REPHONIC_API_KEY in the environment. "
+    "Set REPHONIC_API_KEY in the environment to authenticate. "
     "Get an API key at https://rephonic.com/developers.\n"
     "\n"
     "Exit codes: 0 success, 1 API or network error, 2 usage error, "
     "4 authentication error, 5 server error.\n"
     "\n"
-    "Docs: https://rephonic.com/developers. "
-    "LLM-friendly reference: https://rephonic.com/llms-full.txt."
+    "The API docs are at https://rephonic.com/developers, and a reference "
+    "written for LLMs is at https://rephonic.com/llms-full.txt."
 )
 
 
-app = _make_typer("Rephonic podcast intelligence API from the command line.", epilog=ROOT_EPILOG)
+app = _make_typer("Command-line client for the Rephonic podcast API.", epilog=ROOT_EPILOG)
 search_app = _make_typer("Search podcasts and episodes.")
-podcasts_app = _make_typer("Look up podcast metadata, people, demographics, contacts, and more.")
-episodes_app = _make_typer("List, look up, and transcribe episodes.")
+podcasts_app = _make_typer("Look up a podcast and fetch data about it.")
+episodes_app = _make_typer("List episodes, get one episode, or fetch its transcript.")
 charts_app = _make_typer("Daily chart rankings from Apple, Spotify, and YouTube.")
 common_app = _make_typer("Reference data for search filters.")
 account_app = _make_typer("Account quota and usage.")
@@ -92,13 +96,18 @@ def _root(
         callback=_version_callback,
         is_eager=True,
     ),
+    api_version: Optional[str] = typer.Option(
+        None,
+        "--api-version",
+        help="API version to request, e.g. 1.1. Defaults to REPHONIC_API_VERSION, else the latest.",
+    ),
 ) -> None:
-    """Rephonic podcast intelligence API."""
+    """Command-line client for the Rephonic podcast API."""
 
 
-def _make_client() -> Rephonic:
+def _make_client(api_version: Optional[str] = None) -> Rephonic:
     """Instantiate a ``Rephonic`` client. Tests can monkey-patch this."""
-    return Rephonic()
+    return Rephonic(api_version=api_version)
 
 
 def _emit_json(payload: Any) -> None:
@@ -137,8 +146,9 @@ def _parse_filters(raw: Optional[str]) -> Any:
 
 def _run(fn: Callable[[Rephonic], Any]) -> None:
     """Execute a resource call, emit JSON on success, structured error + exit otherwise."""
+    api_version = click.get_current_context().find_root().params["api_version"]
     try:
-        client = _make_client()
+        client = _make_client(api_version)
     except ValueError as exc:
         _emit_error(str(exc), error_type="AuthenticationError")
         raise typer.Exit(code=EXIT_AUTH) from None
@@ -193,8 +203,8 @@ def search_podcasts(
     filters: Optional[str] = typer.Option(
         None,
         "--filters",
-        help='Stripe-style JSON dict (\'{"listeners":{"gte":5000}}\'), '
-        "JSON list, or legacy DSL string.",
+        help='JSON object (\'{"listeners":{"gte":5000}}\'), '
+        "JSON list of raw clauses, or legacy DSL string.",
     ),
 ) -> None:
     """Search for podcasts by topic, title, or publisher.
@@ -286,7 +296,7 @@ def podcasts_lookup(
 def podcasts_get(
     podcast_id: str = typer.Argument(..., metavar="PODCAST_ID"),
 ) -> None:
-    """Full metadata, chart rankings, YouTube channel, similar podcasts, latest episode.
+    """Full metadata: listeners, entities, links, guest and sponsor outreach, similar podcasts.
 
     Example: rephonic podcasts get huberman-lab
     """
@@ -297,8 +307,19 @@ def podcasts_get(
 def podcasts_people(
     podcast_id: str = typer.Argument(..., metavar="PODCAST_ID"),
 ) -> None:
-    """Hosts and recent guests with contacts and social accounts."""
+    """Hosts, crew, and recent guests with contacts and social accounts."""
     _run(lambda c: c.podcasts.people(podcast_id))
+
+
+@podcasts_app.command("rankings")
+def podcasts_rankings(
+    podcast_id: str = typer.Argument(..., metavar="PODCAST_ID"),
+) -> None:
+    """Current Apple Podcasts, Spotify, and YouTube chart positions for a podcast.
+
+    Example: rephonic podcasts rankings huberman-lab
+    """
+    _run(lambda c: c.podcasts.rankings(podcast_id))
 
 
 @podcasts_app.command("demographics")
@@ -321,7 +342,7 @@ def podcasts_promotions(
 def podcasts_contacts(
     podcast_id: str = typer.Argument(..., metavar="PODCAST_ID"),
 ) -> None:
-    """Email contacts, contact pages, and social accounts with quality signals.
+    """Email contacts and contact pages ranked best first, plus social accounts.
 
     Example: rephonic podcasts contacts the-daily
     """
@@ -340,7 +361,7 @@ def podcasts_social(
 def podcasts_feedback(
     podcast_id: str = typer.Argument(..., metavar="PODCAST_ID"),
 ) -> None:
-    """Overall ratings across apps plus AI-generated summary insights."""
+    """Ratings and review counts for each app, plus AI-written review summaries."""
     _run(lambda c: c.podcasts.feedback(podcast_id))
 
 
@@ -380,7 +401,7 @@ def podcasts_trends(
 def podcasts_similar_graph(
     podcast_id: str = typer.Argument(..., metavar="PODCAST_ID"),
 ) -> None:
-    """Shared-audience graph (nodes + links) of podcasts with overlapping listeners."""
+    """Graph of podcasts that share listeners with this one, as nodes and links."""
     _run(lambda c: c.podcasts.similar_graph(podcast_id))
 
 

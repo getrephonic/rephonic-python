@@ -5,7 +5,7 @@ description: Install the Rephonic CLI and Python SDK, configure authentication w
 
 # Set up Rephonic
 
-Rephonic is a podcast intelligence API covering 4M+ podcasts with listener estimates, demographics, contacts, transcripts, and chart rankings. The `rephonic` CLI wraps the HTTP API for shell use and AI coding agents.
+Rephonic's API has data on more than 4 million podcasts, including listener estimates, demographics, contacts, transcripts and chart rankings. The `rephonic` command calls that API and prints the JSON response, so you can use it from shell scripts and AI coding agents.
 
 ## Install
 
@@ -13,7 +13,7 @@ The CLI ships with the Python package. Any of these installs both the SDK and th
 
 ```bash
 pipx install rephonic         # isolated venv, recommended
-uv tool install rephonic      # modern alternative
+uv tool install rephonic      # if you use uv
 pip install rephonic          # if already in a Python project
 ```
 
@@ -33,16 +33,20 @@ export REPHONIC_API_KEY=your_key_here
 
 All commands read this env var. There is no config file and no `login` subcommand.
 
+## API version
+
+The CLI and SDK request the latest API version, so you don't need to set one. To choose a version, set `REPHONIC_API_VERSION=1.1` or pass `--api-version 1.1` before the command group (`rephonic --api-version 1.1 podcasts get huberman-lab`). In Python, use `Rephonic(api_version="1.1")`. An unknown version fails with exit code 1 and a `BadRequestError`.
+
 ## Verify the key works
 
 ```bash
 rephonic account quota
 ```
 
-Should print JSON like `{"usage": 42, "quota": 10000}`. If you get:
+It should print JSON like `{"usage": 42, "quota": 10000}`. If it fails instead, the exit code and the error type on stderr tell you why:
 
-- Exit code 4 with `"type": "AuthenticationError"` on stderr: env var missing or key is wrong.
-- Exit code 1 with `"type": "BadRequestError"`: key works but the request is malformed.
+- Exit code 4 with `"type": "AuthenticationError"` means the environment variable is missing or the key is wrong.
+- Exit code 1 with `"type": "BadRequestError"` means the key works but the request is malformed.
 
 ## Output format
 
@@ -70,14 +74,16 @@ Errors go to stderr as structured JSON:
 
 ## Command groups
 
-- `rephonic search` — search podcasts and episodes
-- `rephonic podcasts` — metadata, people, demographics, contacts, trends
-- `rephonic episodes` — list, get, transcript
-- `rephonic charts` — Apple, Spotify, YouTube daily rankings
-- `rephonic common` — reference data (categories, countries, languages, etc.)
-- `rephonic account` — quota
+| Group | What it does |
+|---|---|
+| `rephonic search` | Searches podcasts and episodes, and suggests search terms |
+| `rephonic podcasts` | Looks up a podcast and fetches data about it, e.g. its metadata, people, chart rankings, demographics or contacts |
+| `rephonic episodes` | Lists a podcast's episodes, gets one episode, or fetches its transcript |
+| `rephonic charts` | Fetches the daily Apple, Spotify and YouTube chart rankings |
+| `rephonic common` | Lists reference data for filters, e.g. categories, countries and languages |
+| `rephonic account` | Shows your quota and usage |
 
-Run `rephonic --help` and `rephonic <group> --help` for the full surface.
+Run `rephonic --help` to list the groups, and `rephonic <group> --help` to see every command and option in a group.
 
 ## Docs
 

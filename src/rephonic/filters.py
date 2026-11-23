@@ -4,9 +4,10 @@ The API expects a comma-separated string of ``field:operator:value`` clauses
 (see https://rephonic.com/developers/search-filters). This module encodes
 user-friendly Python forms into that wire format:
 
-- **Stripe-style dict** — primary form: ``{"listeners": {"gte": 5000}, "active": True}``
-- **list of strings** — raw clauses: ``["listeners:gte:5000", "active:is:true"]``
-- **string** — legacy raw DSL: ``"listeners:gte:5000,active:is:true"``
+- A dict mapping each field to a value or an operator, which is the main form, e.g.
+  ``{"listeners": {"gte": 5000}, "active": True}``.
+- A list of raw clauses, e.g. ``["listeners:gte:5000", "active:is:true"]``.
+- A string in the legacy raw format, e.g. ``"listeners:gte:5000,active:is:true"``.
 
 The dict form mirrors the API's operator names exactly. In particular, ``in``
 means the field must contain **all** of the given values (intersection), not

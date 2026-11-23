@@ -38,6 +38,16 @@ def test_podcast_get_encodes_path(client):
 
 
 @respx.mock
+def test_podcast_rankings(client):
+    route = respx.get("https://api.rephonic.com/api/podcasts/huberman-lab/rankings/").mock(
+        return_value=httpx.Response(200, json=dict(rankings=[dict(platform="apple", rank=4)]))
+    )
+    result = client.podcasts.rankings("huberman-lab")
+    assert result["rankings"][0]["rank"] == 4
+    assert route.called
+
+
+@respx.mock
 def test_podcast_lookup_passes_param(client):
     route = respx.get("https://api.rephonic.com/api/podcasts/lookup/").mock(
         return_value=httpx.Response(200, json=dict(podcasts=[dict(id="huberman-lab")]))

@@ -31,6 +31,7 @@ from .resources import (
 )
 
 ENV_API_KEY = "REPHONIC_API_KEY"
+ENV_API_VERSION = "REPHONIC_API_VERSION"
 
 
 def _resolve_api_key(api_key: str | None) -> str:
@@ -43,6 +44,10 @@ def _resolve_api_key(api_key: str | None) -> str:
     return resolved
 
 
+def _resolve_api_version(api_version: str | None) -> str:
+    return api_version or os.environ.get(ENV_API_VERSION) or DEFAULT_API_VERSION
+
+
 class Rephonic:
     """Official Python client for the Rephonic podcast API.
 
@@ -51,8 +56,9 @@ class Rephonic:
     Args:
         api_key: Your Rephonic API key. Falls back to ``REPHONIC_API_KEY`` env.
         base_url: Override the API base URL.
-        api_version: API version sent as ``X-Rephonic-Api-Version`` (default
-            the latest version; see rephonic.com/developers for the history).
+        api_version: API version sent as ``X-Rephonic-Api-Version``, e.g.
+            ``"1.1"``. Falls back to ``REPHONIC_API_VERSION`` env, then to the
+            latest version. Unknown versions raise :class:`BadRequestError`.
         timeout: Request timeout in seconds.
         max_retries: Retries on connection errors, 429s, and 5xxs (default 2).
         http_client: Bring your own ``httpx.Client`` (for proxies, custom TLS).
@@ -70,7 +76,7 @@ class Rephonic:
         api_key: str | None = None,
         *,
         base_url: str = DEFAULT_BASE_URL,
-        api_version: str = DEFAULT_API_VERSION,
+        api_version: str | None = None,
         timeout: float = DEFAULT_TIMEOUT,
         max_retries: int = DEFAULT_MAX_RETRIES,
         http_client: httpx.Client | None = None,
@@ -78,7 +84,7 @@ class Rephonic:
         self._base_client = BaseClient(
             api_key=_resolve_api_key(api_key),
             base_url=base_url,
-            api_version=api_version,
+            api_version=_resolve_api_version(api_version),
             timeout=timeout,
             max_retries=max_retries,
             http_client=http_client,
@@ -105,8 +111,8 @@ class Rephonic:
 class AsyncRephonic:
     """Asynchronous client for the Rephonic podcast API.
 
-    Same surface as :class:`Rephonic`, but every resource method is a
-    coroutine. ``iter_*`` methods return async iterators.
+    Has the same resources and methods as :class:`Rephonic`, but every
+    resource method is a coroutine. ``iter_*`` methods return async iterators.
 
     Example::
 
@@ -123,7 +129,7 @@ class AsyncRephonic:
         api_key: str | None = None,
         *,
         base_url: str = DEFAULT_BASE_URL,
-        api_version: str = DEFAULT_API_VERSION,
+        api_version: str | None = None,
         timeout: float = DEFAULT_TIMEOUT,
         max_retries: int = DEFAULT_MAX_RETRIES,
         http_client: httpx.AsyncClient | None = None,
@@ -131,7 +137,7 @@ class AsyncRephonic:
         self._base_client = AsyncBaseClient(
             api_key=_resolve_api_key(api_key),
             base_url=base_url,
-            api_version=api_version,
+            api_version=_resolve_api_version(api_version),
             timeout=timeout,
             max_retries=max_retries,
             http_client=http_client,

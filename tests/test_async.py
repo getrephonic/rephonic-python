@@ -9,6 +9,7 @@ from rephonic import (
     NotFoundError,
     RateLimitError,
 )
+from rephonic._base_client import DEFAULT_API_VERSION
 
 
 async def test_requires_api_key(monkeypatch):
@@ -31,6 +32,18 @@ async def test_sends_auth_header(aclient):
     await aclient.account.quota()
     assert route.called
     assert route.calls.last.request.headers["x-rephonic-api-key"] == "test-key"
+    assert route.calls.last.request.headers["x-rephonic-api-version"] == DEFAULT_API_VERSION
+
+
+@respx.mock
+async def test_api_version_from_env(monkeypatch):
+    monkeypatch.setenv("REPHONIC_API_VERSION", "1.0")
+    route = respx.get("https://api.rephonic.com/api/accounts/quota/").mock(
+        return_value=httpx.Response(200, json=dict(usage=1, quota=10000))
+    )
+    async with AsyncRephonic(api_key="test-key", max_retries=0) as client:
+        await client.account.quota()
+    assert route.calls.last.request.headers["x-rephonic-api-version"] == "1.0"
 
 
 @respx.mock
@@ -40,6 +53,16 @@ async def test_podcast_get(aclient):
     )
     result = await aclient.podcasts.get("huberman-lab")
     assert result["podcast"]["id"] == "huberman-lab"
+
+
+@respx.mock
+async def test_podcast_rankings(aclient):
+    route = respx.get("https://api.rephonic.com/api/podcasts/huberman-lab/rankings/").mock(
+        return_value=httpx.Response(200, json=dict(rankings=[]))
+    )
+    result = await aclient.podcasts.rankings("huberman-lab")
+    assert result == dict(rankings=[])
+    assert route.called
 
 
 @respx.mock

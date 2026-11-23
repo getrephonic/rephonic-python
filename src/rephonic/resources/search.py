@@ -104,7 +104,8 @@ class Search:
         """Full-text search across episode titles, show notes, and transcripts.
 
         ``threshold`` restricts results to episodes published in the last N
-        seconds (max 1,209,600 = 14 days). Useful for near-realtime monitoring.
+        seconds (max 1,209,600, which is 14 days). Poll with a small
+        ``threshold`` to pick up new mentions of a brand.
         """
         return self._client.get(
             "/api/search/episodes/",

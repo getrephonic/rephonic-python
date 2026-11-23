@@ -10,6 +10,7 @@ import respx
 from typer.testing import CliRunner
 
 from rephonic import Rephonic
+from rephonic._base_client import DEFAULT_API_VERSION
 from rephonic._cli import app
 from rephonic._version import __version__
 
@@ -27,7 +28,10 @@ def api_key(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.fixture
 def fast_client(monkeypatch: pytest.MonkeyPatch) -> None:
     """Disable retries so 429/5xx tests finish fast."""
-    monkeypatch.setattr("rephonic._cli._make_client", lambda: Rephonic(max_retries=0))
+    monkeypatch.setattr(
+        "rephonic._cli._make_client",
+        lambda api_version=None: Rephonic(api_version=api_version, max_retries=0),
+    )
 
 
 def test_version(runner: CliRunner) -> None:
@@ -164,3 +168,63 @@ def test_charts_rankings_path_params(runner: CliRunner, api_key: None) -> None:
     )
     assert result.exit_code == 0, result.stderr
     assert route.called
+
+
+@respx.mock
+def test_podcasts_rankings(runner: CliRunner, api_key: None) -> None:
+    respx.get("https://api.rephonic.com/api/podcasts/huberman-lab/rankings/").mock(
+        return_value=httpx.Response(200, json=dict(rankings=[dict(platform="apple", rank=4)]))
+    )
+    result = runner.invoke(app, ["podcasts", "rankings", "huberman-lab"])
+    assert result.exit_code == 0, result.stderr
+    assert json.loads(result.stdout)["rankings"][0]["rank"] == 4
+
+
+@respx.mock
+def test_api_version_defaults_to_latest(runner: CliRunner, api_key: None) -> None:
+    route = respx.get("https://api.rephonic.com/api/accounts/quota/").mock(
+        return_value=httpx.Response(200, json=dict(usage=1, quota=1))
+    )
+    result = runner.invoke(app, ["account", "quota"])
+    assert result.exit_code == 0, result.stderr
+    assert route.calls.last.request.headers["x-rephonic-api-version"] == DEFAULT_API_VERSION
+
+
+@respx.mock
+def test_api_version_flag_beats_env(
+    runner: CliRunner, api_key: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("REPHONIC_API_VERSION", "1.1")
+    route = respx.get("https://api.rephonic.com/api/accounts/quota/").mock(
+        return_value=httpx.Response(200, json=dict(usage=1, quota=1))
+    )
+    result = runner.invoke(app, ["--api-version", "1.0", "account", "quota"])
+    assert result.exit_code == 0, result.stderr
+    assert route.calls.last.request.headers["x-rephonic-api-version"] == "1.0"
+
+
+@respx.mock
+def test_api_version_from_env(
+    runner: CliRunner, api_key: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("REPHONIC_API_VERSION", "1.0")
+    route = respx.get("https://api.rephonic.com/api/accounts/quota/").mock(
+        return_value=httpx.Response(200, json=dict(usage=1, quota=1))
+    )
+    result = runner.invoke(app, ["account", "quota"])
+    assert result.exit_code == 0, result.stderr
+    assert route.calls.last.request.headers["x-rephonic-api-version"] == "1.0"
+
+
+@respx.mock
+def test_unknown_api_version_error(runner: CliRunner, api_key: None) -> None:
+    respx.get("https://api.rephonic.com/api/accounts/quota/").mock(
+        return_value=httpx.Response(
+            400, json=dict(error="Unknown API version: 9.9. Known versions: 1.0, 1.1")
+        )
+    )
+    result = runner.invoke(app, ["--api-version", "9.9", "account", "quota"])
+    assert result.exit_code == 1
+    payload = json.loads(result.stderr)
+    assert payload["error"]["type"] == "BadRequestError"
+    assert "Unknown API version" in payload["error"]["message"]

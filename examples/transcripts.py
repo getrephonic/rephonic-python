@@ -1,4 +1,4 @@
-"""Grab the full transcript for a podcast's latest episode."""
+"""Fetch the transcript of a podcast's latest episode."""
 
 import os
 

@@ -1,19 +1,17 @@
 # rephonic-python
 
-Official Python client for the [Rephonic](https://rephonic.com) podcast API. Covers 4+ million podcasts with listener estimates, demographics, contact details, chart rankings, episodes, full transcripts, and more.
+This is the official Python client for the [Rephonic](https://rephonic.com) API. Rephonic has data on more than 4 million podcasts, including listener estimates, audience demographics, contact details, chart rankings, episodes and transcripts.
 
-Thin, typed wrapper around the [Rephonic HTTP API](https://rephonic.com/developers). Ships with a [`rephonic` CLI](#command-line) for shell scripts and AI coding agents. If you want Rephonic inside an AI assistant via Model Context Protocol, use the [Rephonic MCP Server](https://github.com/getrephonic/rephonic-mcp).
+The client is a small, typed wrapper around the [Rephonic HTTP API](https://rephonic.com/developers), and each method returns the API's JSON response as a plain dict. Installing it also gives you a [`rephonic` command](#command-line) that you can call from shell scripts or hand to an AI coding agent. To use Rephonic inside an AI assistant over the Model Context Protocol, use the [Rephonic MCP Server](https://github.com/getrephonic/rephonic-mcp) instead.
 
-## What you can build with it
+## Examples of what you can do
 
-- Enrich a CRM with podcast metadata, listener estimates, and contacts
-- Filter podcasts by audience demographics, topic, or reach, then pull verified contact emails in one pass (good for guest pitching and media lists)
-- Monitor brand mentions by polling `search.episodes` with a rolling `threshold`
-- Pull age, gender, education, profession, income, interests, and location breakdowns for any show
-- Grab daily Apple, Spotify, and YouTube chart data across countries and categories
-- Audit sponsorships: who's advertising on which shows, with ad copy and promo codes extracted from transcripts
-- Feed full-text, speaker-labelled transcripts into your own LLM pipeline
-- Power a podcast discovery app: search, autocomplete, audience graph, similar podcasts
+- Search for podcasts with `search.podcasts`, using `filters` to narrow the results, e.g. to active shows with at least 5,000 listeners per episode. Then fetch each show's email contacts with `podcasts.contacts`.
+- Monitor brand mentions by polling `search.episodes` with a rolling `threshold`.
+- Get a show's estimated listener demographics, e.g. age, profession or location, with `podcasts.demographics`.
+- Fetch the daily Apple, Spotify or YouTube chart for a country and category with `charts.rankings`.
+- See which sponsors advertise on a show, along with their ad text and promo codes, with `podcasts.promotions`.
+- Download an episode's transcript with `episodes.transcript`. It comes as timestamped segments with speaker labels.
 
 ## Install
 
@@ -26,7 +24,7 @@ Python 3.8+.
 
 ## Command line
 
-`pip install rephonic` also installs a `rephonic` command. Every method on the Python client has a CLI equivalent. Authentication is via `REPHONIC_API_KEY` in the environment. Output is JSON on stdout, structured errors on stderr.
+`pip install rephonic` also installs a `rephonic` command. Every method on the Python client has a CLI equivalent. It reads your API key from `REPHONIC_API_KEY` in the environment. Results are printed to stdout as JSON, and errors are printed to stderr as JSON.
 
 ```bash
 export REPHONIC_API_KEY=your_api_key
@@ -34,14 +32,17 @@ export REPHONIC_API_KEY=your_api_key
 # Look up a podcast
 rephonic podcasts get huberman-lab | jq '.podcast.name'
 
-# Search with Stripe-style filters
+# Search with filters
 rephonic search podcasts \
   --query "marketing" \
   --filters '{"listeners":{"gte":10000},"active":true}'
 
-# Grab a transcript
+# Fetch an episode's transcript
 rephonic episodes transcript kzaca-huberman-lab-dr-brian-keating-charting-the-a \
   | jq '.transcript.segments[].text'
+
+# Where it ranks in the Apple, Spotify, and YouTube charts
+rephonic podcasts rankings huberman-lab
 
 # Check your quota
 rephonic account quota
@@ -59,11 +60,11 @@ The repo also ships [Agent Skills](https://agentskills.io/) for common workflows
 npx skills add getrephonic/rephonic-python
 ```
 
-Auto-detects Claude Code, Cursor, Copilot, Gemini CLI, Goose, and ~40 other agents.
+The `skills` CLI finds the agents you have installed. It supports Claude Code, Cursor, Copilot, Gemini CLI, Goose and about 40 others.
 
 ## Python quickstart
 
-Grab an API key from [rephonic.com/developers](https://rephonic.com/developers).
+Get an API key from [rephonic.com/developers](https://rephonic.com/developers).
 
 ```python
 from rephonic import Rephonic
@@ -112,7 +113,7 @@ with Rephonic() as client:
 
 ## Async
 
-`AsyncRephonic` has the same surface but returns coroutines. Useful when you want to fan out many calls concurrently (enrichment pipelines, media lists, realtime monitoring).
+`AsyncRephonic` has the same methods as `Rephonic`, but each one returns a coroutine.
 
 ```python
 import asyncio
@@ -121,12 +122,6 @@ from rephonic import AsyncRephonic
 async def main():
     async with AsyncRephonic(api_key="your_api_key") as client:
         podcast = await client.podcasts.get("huberman-lab")
-
-        # These run concurrently.
-        podcast_ids = ["huberman-lab", "the-daily", "lex-fridman-podcast"]
-        contacts = await asyncio.gather(
-            *(client.podcasts.contacts(pid) for pid in podcast_ids)
-        )
 
         # Auto-paginating async iterator.
         async for p in client.search.iter_podcasts(query="ai", limit=500):
@@ -142,7 +137,7 @@ The API is organised into six resource groups on the client. For the full method
 | Resource | Methods |
 |---|---|
 | `client.search` | `podcasts`, `iter_podcasts`, `episodes`, `iter_episodes`, `autocomplete` |
-| `client.podcasts` | `get`, `people`, `demographics`, `promotions`, `contacts`, `social`, `feedback`, `reviews`, `trends`, `similar_graph` |
+| `client.podcasts` | `lookup`, `get`, `people`, `rankings`, `demographics`, `promotions`, `contacts`, `social`, `feedback`, `reviews`, `trends`, `similar_graph` |
 | `client.episodes` | `list`, `iter_list`, `get`, `transcript` |
 | `client.charts` | `index`, `rankings` |
 | `client.common` | `categories`, `countries`, `languages`, `sponsors`, `professions`, `interests` |
@@ -197,7 +192,11 @@ The client retries automatically on 429 and 5xx responses with exponential backo
 
 ## Filters
 
-Pass `filters` as a dict. Booleans are plain values; numeric ops use `gte` / `lte`; multi-value ops use `any` (union) / `in` (intersection):
+Pass `filters` as a dict with one key per field. How you write each value depends on the field:
+
+- A boolean field takes `True` or `False`.
+- A numeric field takes `gte` (at least) and `lte` (at most).
+- A field with several values takes `any` or `in`. `any` matches podcasts that have at least one of the listed values. `in` matches only podcasts that have every listed value, so it works differently from SQL's `IN`.
 
 ```python
 client.search.podcasts(
@@ -213,11 +212,9 @@ client.search.podcasts(
 )
 ```
 
-Reserved characters (`-`, `,`, `:`, `\`) inside values are escaped automatically, so `"Harley-Davidson"` just works.
+In the dict form, the client escapes the reserved characters `-`, `,`, `:` and `\` inside values for you, so you can pass a value such as `"Harley-Davidson"` unchanged.
 
-> Rephonic's `in` means the field must contain **all** of the listed values (intersection), not SQL-style set membership. Use `any` for OR semantics.
-
-Full list of filters and operators at [rephonic.com/developers/search-filters](https://rephonic.com/developers/search-filters). Use `client.common.categories()`, `countries()`, `languages()`, `sponsors()`, `professions()`, and `interests()` to look up valid IDs.
+Full list of filters and operators at [rephonic.com/developers/search-filters](https://rephonic.com/developers/search-filters). Use `client.common.categories()`, `countries()`, `languages()`, `sponsors()`, `professions()`, and `interests()` to look up valid values.
 
 Other accepted shapes for `filters`:
 
@@ -228,6 +225,16 @@ filters=["listeners:gte:5000", "active:is:true"]
 # Legacy comma-separated string (still supported)
 filters="listeners:gte:5000,active:is:true"
 ```
+
+## API versions
+
+The client and CLI send the latest API version (`1.1`) in the `X-Rephonic-Api-Version` header on every request. To choose a version, pass it to the client:
+
+```python
+client = Rephonic(api_version="1.1")
+```
+
+or set `REPHONIC_API_VERSION=1.1` in the environment. In the CLI, pass `--api-version 1.1` before the command group, e.g. `rephonic --api-version 1.1 podcasts get huberman-lab`. The constructor argument and the flag win over the environment variable. An unknown version raises `BadRequestError` with the API's message.
 
 ## Advanced configuration
 
@@ -267,7 +274,7 @@ See [rephonic.com/developers](https://rephonic.com/developers#pricing) for plan 
 ## Related resources
 
 - [Rephonic API docs](https://rephonic.com/developers)
-- [Markdown API reference for LLMs](https://rephonic.com/llms-full.txt) (feed to any model to generate integration code)
+- [Markdown API reference for LLMs](https://rephonic.com/llms-full.txt), which you can give to a model when you ask it to write integration code
 - [Rephonic MCP Server](https://github.com/getrephonic/rephonic-mcp) for Claude, ChatGPT, and Cursor
 - [rephonic.com](https://rephonic.com)
 

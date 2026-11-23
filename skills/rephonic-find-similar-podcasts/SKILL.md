@@ -1,23 +1,27 @@
 ---
 name: rephonic-find-similar-podcasts
-description: Find podcasts with overlapping audiences for guest pitching, media-list expansion, recommendation features, or competitive research. Use when a user asks for "podcasts like X", "similar to Y", shared-audience analysis, or wants to discover shows related to a seed podcast.
+description: Find podcasts that share listeners with a podcast, e.g. to find more shows to pitch. Use when a user asks for "podcasts like X", "similar to Y", shared-audience analysis, or wants to discover shows related to a seed podcast.
 ---
 
 # Find similar podcasts
 
-Rephonic's similar-graph endpoint returns a weighted graph of podcasts with overlapping listeners. Edge weight corresponds to audience-overlap strength.
+Rephonic has two sources of similar podcasts, and both are based on shared listeners:
+
+- `rephonic podcasts get <id>` returns `.podcast.similar`, which lists the closest matches to the seed with their listener estimates. They are ranked by `position`, and 1 is the most similar.
+- `rephonic podcasts similar-graph <id>` returns the audience graph as `nodes` and `links`. It has the seed's similar podcasts and also the similar podcasts of each of those.
 
 ## Quick use
 
 ```bash
-rephonic podcasts similar-graph huberman-lab | jq '.graph.nodes[0:10]'
+rephonic podcasts get huberman-lab \
+  | jq '.podcast.similar | sort_by(.position) | .[] | {position, id, name, listeners: .downloads_per_episode}'
 ```
 
 ## Full workflow
 
 ### 1. Resolve seed podcast ID
 
-If the user has an external identifier (Apple/iTunes ID, Spotify ID, YouTube channel ID, or RSS feed URL), resolve it directly — no search needed:
+If the user has an external identifier (Apple/iTunes ID, Spotify ID, YouTube channel ID, or RSS feed URL), resolve it with `podcasts lookup` instead of searching:
 
 ```bash
 SEED=$(rephonic podcasts lookup --itunes-id 1545953110 | jq -r '.podcasts[0].id')
@@ -30,85 +34,77 @@ SEED=$(rephonic search podcasts --query "huberman lab" | jq -r '.podcasts[0].id'
 echo "$SEED"  # huberman-lab
 ```
 
-### 2. Pull the graph
+### 2. Ranked direct matches
+
+```bash
+rephonic podcasts get "$SEED" | jq '
+  .podcast.similar
+  | sort_by(.position)
+  | map({
+      position,
+      id,
+      name,
+      listeners: .downloads_per_episode,
+      takes_guests: .guests.accepted,
+      takes_sponsors: .sponsors.accepted
+    })
+'
+```
+
+Each entry is a short podcast stub (`id`, `name`, `publisher`, `genres`, `active`, `guests.accepted`, `sponsors.accepted`, `downloads_per_episode`, `weekly_downloads`, `position`). Pull `rephonic podcasts get <id>` for the full record.
+
+### 3. Expand with the audience graph
 
 ```bash
 rephonic podcasts similar-graph "$SEED" > graph.json
 ```
 
-### 3. Rank by edge weight
-
-Extract direct neighbours of the seed and sort by weight:
+Each link has a `depth`. It is `0` for links to the seed's own similar podcasts and `1` for links to the similar podcasts of those. To find shows beyond the direct matches, drop the seed and its direct matches, then rank the remaining podcasts by how many direct matches link to each one:
 
 ```bash
 jq --arg seed "$SEED" '
-  .graph.links
-  | map(select(.source == $seed or .target == $seed))
-  | sort_by(-.weight)
+  .graph.links as $links
+  | ([$links[] | select(.depth == 0) | .target] + [$seed]) as $known
+  | [$links[] | select(.depth == 1) | .target | select(. as $t | $known | index($t) | not)]
+  | group_by(.)
+  | map({id: .[0], shared_with_direct_matches: length})
+  | sort_by(-.shared_with_direct_matches)
   | .[0:20]
-  | map({
-      other: (if .source == $seed then .target else .source end),
-      weight
-    })
-' graph.json
+' graph.json > second_hop.json
 ```
 
-### 4. Hydrate with metadata
+### 4. Get listener counts
+
+Graph nodes carry only `id`, `name`, `publisher`, `itunes_id`, artwork and `description`. For listener counts, fetch each podcast:
 
 ```bash
-jq -r --arg seed "$SEED" '
-  .graph.links
-  | map(select(.source == $seed or .target == $seed))
-  | sort_by(-.weight)
-  | .[0:10]
-  | .[] | (if .source == $seed then .target else .source end)
-' graph.json | while read pid; do
+jq -r '.[].id' second_hop.json | while read pid; do
   rephonic podcasts get "$pid" \
     | jq '{id: .podcast.id, name: .podcast.name, listeners: .podcast.downloads_per_episode}'
 done
 ```
 
-## Response shape
+## Graph response shape
 
 ```json
 {
   "graph": {
     "nodes": [
-      {"id": "huberman-lab", "name": "Huberman Lab"},
-      {"id": "lex-fridman-podcast", "name": "Lex Fridman Podcast"}
+      {"id": "huberman-lab", "name": "Huberman Lab", "publisher": "Scicomm Media", "itunes_id": 1545953110},
+      {"id": "the-peter-attia-drive", "name": "The Peter Attia Drive", "publisher": "Peter Attia, MD", "itunes_id": 1400828889}
     ],
     "links": [
-      {"source": "huberman-lab", "target": "lex-fridman-podcast", "weight": 0.42}
+      {"source": "huberman-lab", "target": "the-peter-attia-drive", "depth": 0},
+      {"source": "the-peter-attia-drive", "target": "foundmyfitness", "depth": 1}
     ]
   }
 }
 ```
 
-The graph is undirected. `{source: A, target: B}` and `{source: B, target: A}` are not both present — check both positions when filtering.
-
-## Common uses
-
-- **Guest pitching**: podcasts similar to shows a guest has already appeared on are likely to accept them too.
-- **Media list expansion**: start with 5 target shows, expand to 50 via shared-audience hops.
-- **Competitive research**: see who overlaps with your own podcast's audience.
-- **Recommendation features**: "if you liked X, try Y" in a consumer app.
-
-## Two-hop expansion
-
-Expand beyond direct neighbours by recursing one more level:
-
-```bash
-# First hop
-FIRST=$(rephonic podcasts similar-graph "$SEED" | jq -r --arg s "$SEED" '.graph.links | map(select(.source == $s or .target == $s)) | sort_by(-.weight) | .[0:5] | .[] | (if .source == $s then .target else .source end)')
-
-# Second hop, dedup against the seed
-for pid in $FIRST; do
-  rephonic podcasts similar-graph "$pid" | jq -r --arg s "$pid" '.graph.links | map(select(.source == $s or .target == $s)) | sort_by(-.weight) | .[0:3] | .[] | (if .source == $s then .target else .source end)'
-done | sort -u
-```
+Links point from a podcast to one of its similar podcasts. Links carry no strength score, so for a ranking use `.podcast.similar[].position` (direct matches) or count shared links (second hop) as above.
 
 ## Edge cases
 
-- **Small podcasts may have empty graphs** (insufficient listener data to compute overlap).
-- **Seed not found**: Rephonic returns 400, not 404. CLI exits 1. Check stderr for "not found" or "unknown".
-- Weights are normalised 0 to 1 within a graph. Don't compare weights across different seed podcasts as absolute values.
+- A small podcast can have an empty graph when Rephonic doesn't have enough listener data to measure the overlap.
+- If the seed isn't found, Rephonic returns 400 rather than 404, and the CLI exits 1. Look for "not found" or "unknown" in the error on stderr.
+- `similar` stubs can have `null` listener and `accepted` fields for shows with little data.

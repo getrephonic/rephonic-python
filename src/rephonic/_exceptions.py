@@ -57,7 +57,7 @@ class NotFoundError(APIStatusError):
     """Raised for HTTP 404 responses.
 
     Note: the Rephonic API returns ``400 Bad Request`` (``BadRequestError``)
-    for missing resources, not 404 — this class is reserved for future use
+    for missing resources, not 404. This class is reserved for future use,
     and for explicitly catching any endpoint that might adopt 404 semantics.
     """
 

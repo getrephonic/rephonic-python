@@ -54,6 +54,40 @@ def test_api_version_override():
 
 
 @respx.mock
+def test_api_version_from_env(monkeypatch):
+    monkeypatch.setenv("REPHONIC_API_VERSION", "1.0")
+    route = respx.get("https://api.rephonic.com/api/accounts/quota/").mock(
+        return_value=httpx.Response(200, json=dict(usage=1, quota=10000))
+    )
+    with Rephonic(api_key="test-key", max_retries=0) as client:
+        client.account.quota()
+    assert route.calls.last.request.headers["x-rephonic-api-version"] == "1.0"
+
+
+@respx.mock
+def test_api_version_arg_beats_env(monkeypatch):
+    monkeypatch.setenv("REPHONIC_API_VERSION", "1.0")
+    route = respx.get("https://api.rephonic.com/api/accounts/quota/").mock(
+        return_value=httpx.Response(200, json=dict(usage=1, quota=10000))
+    )
+    with Rephonic(api_key="test-key", api_version="1.1", max_retries=0) as client:
+        client.account.quota()
+    assert route.calls.last.request.headers["x-rephonic-api-version"] == "1.1"
+
+
+@respx.mock
+def test_unknown_api_version_surfaces_error():
+    respx.get("https://api.rephonic.com/api/accounts/quota/").mock(
+        return_value=httpx.Response(
+            400, json=dict(error="Unknown API version: 9.9. Known versions: 1.0, 1.1")
+        )
+    )
+    client = Rephonic(api_key="test-key", api_version="9.9", max_retries=0)
+    with client, pytest.raises(BadRequestError, match="Unknown API version"):
+        client.account.quota()
+
+
+@respx.mock
 def test_sends_user_agent(client):
     route = respx.get("https://api.rephonic.com/api/accounts/quota/").mock(
         return_value=httpx.Response(200, json=dict(usage=1, quota=1))

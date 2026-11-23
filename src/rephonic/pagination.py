@@ -1,4 +1,4 @@
-"""Pagination helpers — sync and async.
+"""Sync and async pagination helpers.
 
 The Rephonic API paginates via ``page`` / ``per_page`` query parameters. Each
 paginated endpoint returns items under a fixed key (e.g. ``podcasts``,

@@ -1,11 +1,9 @@
 ---
 name: rephonic-pull-transcript
-description: Fetch a full, timestamped, speaker-labeled transcript of a podcast episode and prepare it for downstream use (LLM pipelines, quote extraction, sponsor analysis, keyword search). Use when a user wants to analyze, summarize, search, or quote from a specific podcast episode.
+description: Fetch the transcript of a podcast episode, with speaker labels and timestamps, and prepare it for LLM prompts, quote extraction, sponsor analysis or keyword search. Use when a user wants to analyze, summarize, search, or quote from a specific podcast episode.
 ---
 
 # Pull a podcast transcript
-
-Rephonic ships full transcripts with speaker IDs and timestamps. Use them for LLM pipelines, quote extraction, sponsor analysis, or keyword search within an episode.
 
 ## Quick use
 
@@ -21,17 +19,18 @@ rephonic episodes transcript kzaca-huberman-lab-dr-brian-keating-charting-the-a 
   "transcript": {
     "segments": [
       {
-        "start": 12.4,
-        "end": 18.9,
-        "speaker": "S1",
+        "start": 12400,
+        "end": 18900,
+        "speaker": 1,
         "text": "Today we're joined by Dr. Brian Keating..."
       }
     ],
     "speakers": {
-      "S1": "Andrew Huberman",
-      "S2": "Brian Keating"
+      "1": "Andrew Huberman",
+      "2": "Brian Keating"
     }
-  }
+  },
+  "episode": {...}
 }
 ```
 
@@ -51,31 +50,31 @@ rephonic episodes list --podcast-id huberman-lab --per-page 5 | jq '.episodes[] 
 
 ## Flatten for LLM input
 
-For prompting an LLM, speaker-prefixed paragraphs are usually cleaner than the raw segment array:
+This writes the transcript to a text file with one paragraph per segment, each starting with the speaker's name, which you can paste into an LLM prompt:
 
 ```bash
 rephonic episodes transcript "$EID" | jq -r '
   .transcript as $t
   | $t.segments
-  | map("[" + ($t.speakers[.speaker] // .speaker) + "] " + .text)
+  | map("[" + ($t.speakers[.speaker | tostring] // "Speaker \(.speaker)") + "] " + .text)
   | join("\n\n")
 ' > transcript.txt
 ```
 
 ## Extract sponsor reads
 
-Sponsor segments commonly cluster in the first few minutes and around the middle of an episode. Filter by timestamp:
+Sponsor segments commonly cluster in the first few minutes and around the middle of an episode. Filter by timestamp (milliseconds):
 
 ```bash
 rephonic episodes transcript "$EID" | jq '
   .transcript.segments
-  | map(select(.start < 480 or (.start > 2400 and .start < 3300)))
+  | map(select(.start < 480000 or (.start > 2400000 and .start < 3300000)))
   | map(.text)
   | join(" ")
 '
 ```
 
-For structured sponsor data (ad text, promo codes, URLs), prefer `rephonic podcasts promotions <podcast_id>` — Rephonic already extracts these at the podcast level.
+For structured sponsor data (ad text, promo codes, URLs), use `rephonic podcasts promotions <podcast_id>` instead. Rephonic has already pulled those out for each podcast.
 
 ## Keyword search within a transcript
 
@@ -87,15 +86,11 @@ rephonic episodes transcript "$EID" | jq '
 '
 ```
 
-`"i"` on the regex = case-insensitive.
-
-## Feeding to an LLM
-
-The flattened transcript output is directly usable as Claude or GPT input. For very long episodes (3+ hours, 10k+ segments), chunk by speaker turn and summarize iteratively, or feed via a prompt-caching pipeline.
+The `"i"` flag makes the match case-insensitive.
 
 ## Edge cases
 
-- **Not all episodes have transcripts.** The endpoint returns 400 `BadRequestError` (not 404) when missing. CLI exits 1. Check stderr for "not available" or "unknown".
-- **Speaker names are best-effort.** Sometimes Rephonic only has speaker IDs (`S1`, `S2`) without named mapping. Handle the `speakers` dict being partial or empty.
-- **Long episodes produce big arrays.** Segment arrays in the 2k to 5k range are normal for 2+ hour episodes. Pipe through `jq -c` for compact output if you're streaming to another tool.
-- **Timestamps are in seconds (float).** Convert with `date -u -d @"$start"` or Python's `timedelta` if you need HH:MM:SS.
+- Some episodes have no transcript. For those the endpoint returns 400 (`BadRequestError`), not 404, and the CLI exits 1. Look for "not available" or "unknown" in the error on stderr.
+- Rephonic doesn't always know who the speakers are, and sometimes it only has numeric speaker IDs. Your code should handle a `speakers` dict that is partial or empty. Its keys are strings (`"1"`), while `segment.speaker` is a number.
+- An episode over 2 hours usually has somewhere between 2,000 and 5,000 segments. Use `jq -c` for compact output if you're piping the JSON into another tool.
+- Timestamps are integer milliseconds. Divide by 1000 to get seconds, or use Python's `timedelta(milliseconds=start)` if you need HH:MM:SS.
